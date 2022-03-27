@@ -41,3 +41,66 @@ def make_input_features(board, features):
         for num, max_num in zip(hands, cshogi.MAX_PIECES_IN_HAND):
             features[i:i + num].fill(1)  # 30チャネル目が.fill(1)されたら歩を2枚持っている.
             i += max_num
+
+
+def make_move_label(move, color):
+    """make output labels for the policy network from move and color
+    information.
+
+    Args:
+        move (int): integer for the movement of pieces
+        color (int): 0(black, sente) or 1(white, gote)
+    """
+    if not cshogi.move_is_drop(move):
+        to_sq = cshogi.move_to(move)
+        from_sq = cshogi.move_from(move)
+
+        # rotate the board if WHITE
+        if color == cshogi.WHITE:
+            to_sq = 80 - to_sq
+            from_sq = 80 - from_sq
+
+        # direction of movement
+        to_x, to_y = divmod(to_sq, 9)
+        from_x, from_y = divmod(from_sq, 9)
+        dir_x = to_x - from_x
+        dir_y = to_y - from_y
+
+        if dir_y < 0:
+            if dir_x == 0:
+                move_direction = UP
+            elif dir_x < 0:
+                move_direction = UP_LEFT
+            else:  # dir_x > 0
+                move_direction = UP_RIGHT
+        elif dir_y == 0:
+            if dir_x < 0:
+                move_direction = LEFT
+            else:  # dir_x > 0
+                move_direction = RIGHT
+        elif dir_y > 0:
+            if dir_x == 0:
+                move_direction = DOWN
+            elif dir_x < 0:
+                move_direction = DOWN_LEFT
+            else:  # dir_x > 0
+                move_direction = DOWN_RIGHT
+        else:  # dir_y == -2 （桂馬）
+            if dir_x == -1:
+                move_direction = UP2_LEFT
+            else:  # dir_x == 1
+                move_direction = UP2_RIGHT
+
+        # promotion（成り）
+        if cshogi.move_is_promotion(move):
+            move_direction += 10
+
+    else:
+        # drop the piece （駒打ち）
+        to_sq = cshogi.move_to(move)
+        if color == cshogi.WHITE:
+            to_sq = 80 - to_sq
+
+        move_direction = len(MOVE_DIRECTION) + cshogi.move_drop_hand_piece(move)
+
+    return move_direction * 81 + to_sq
