@@ -15,13 +15,21 @@ class HcpeDataLoader:
         self.device = device
         self.shuffle = shuffle
 
+        if device == torch.device("cpu"):
+            pin_memory = False
+        else:
+            # pin_memory=Trueにすると高速になるらしいがGPUじゃないと使えない.
+            pin_memory = True
+
         self.torch_features = torch.empty(
-            (batch_size, FEATURES_NUM, 9, 9),
-            dtype=torch.float32,
-            pin_memory=True
+            (batch_size, FEATURES_NUM, 9, 9), dtype=torch.float32, pin_memory=pin_memory
         )
-        self.torch_move_label = torch.empty((batch_size), dtype=torch.int64, pin_memory=True)
-        self.torch_result = torch.empty((batch_size, 1), dtype=torch.float32, pin_memory=True)
+        self.torch_move_label = torch.empty(
+            (batch_size), dtype=torch.int64, pin_memory=pin_memory
+        )
+        self.torch_result = torch.empty(
+            (batch_size, 1), dtype=torch.float32, pin_memory=pin_memory
+        )
 
         self.features = self.torch_features.numpy()
         self.move_label = self.torch_move_label.numpy()
