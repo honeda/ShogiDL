@@ -2,6 +2,7 @@
 notebooks/
 __pycache__/
 data/floodgate/
+data/processed/
 
 poetry.lock
 
