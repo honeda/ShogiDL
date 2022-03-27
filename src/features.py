@@ -104,3 +104,25 @@ def make_move_label(move, color):
         move_direction = len(MOVE_DIRECTION) + cshogi.move_drop_hand_piece(move)
 
     return move_direction * 81 + to_sq
+
+
+def make_result(game_result, color):
+    """return a label of game result for value netwaork
+
+    Args:
+        game_result (_type_): _description_
+        color (_type_): _description_
+    return:
+        float: if win the color, return 1.0, lose -> 0.0, draw -> 0.5
+    """
+    if color == cshogi.BLACK:
+        if game_result == cshogi.BLACK_WIN:
+            return 1.0
+        if game_result == cshogi.WHITE_WIN:
+            return 0.0
+    else:
+        if game_result == cshogi.BLACK_WIN:
+            return 0.0
+        if game_result == cshogi.WHITE_WIN:
+            return 1.0
+    return 0.5
