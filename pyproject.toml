@@ -8,9 +8,11 @@ authors = ["honeda <50893852+honeda@users.noreply.github.com>"]
 python = "3.7.13"
 cshogi = "^0.3.6"
 numpy = "1.21.5"
+torch = "1.10.0"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^4.0.1"
+black = "^22.1.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
