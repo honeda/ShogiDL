@@ -1,6 +1,7 @@
 # hcpeはAperyで使用されている形式
 
 import argparse
+import time
 from pathlib import Path
 
 import numpy as np
@@ -29,6 +30,10 @@ hcpes = np.zeros(1024, HuffmanCodedPosAndEval)
 
 f_train = open(args.hcpe_train, "wb")
 f_test = open(args.hcpe_test, "wb")
+
+
+print("Start of conversion")
+start_time = time.time()
 
 board = Board()
 for file_list, f, m in zip(
@@ -88,3 +93,4 @@ for file_list, f, m in zip(
 
     print(f"{m}_kif_num:", kif_num)
     print(f"{m}_position_num:", position_num)
+    print(f"time: {time.time() - start_time:.1f}sec")
