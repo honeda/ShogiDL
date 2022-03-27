@@ -1,6 +1,7 @@
 .venv/
 notebooks/
 __pycache__/
+
 poetry.lock
 
 !.gitkeep
