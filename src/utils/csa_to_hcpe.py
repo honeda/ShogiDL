@@ -69,7 +69,7 @@ for file_list, f, m in zip(
                     board.to_hcp(hcpe["hcp"])
                     # 16bitに収まるようクリッピングする
                     eval_ = min(32767, max(score, -32767))
-                    # 手番側の評価値にする
+                    # 手番側の評価値なので後手盤なら-1を掛ける
                     hcpe["eval"] = eval_ if board.turn == BLACK else -eval_
                     # 指し手の32bit数値を16bitに切り捨てる
                     hcpe["bestMove16"] = move16(move)
