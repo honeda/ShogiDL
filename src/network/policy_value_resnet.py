@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from features import FEATURES_NUM, MOVE_PLANES_NUM, MOVE_LABELS_NUM
+from src.features import FEATURES_NUM, MOVE_PLANES_NUM, MOVE_LABELS_NUM
 
 
 class Bias(nn.Module):
