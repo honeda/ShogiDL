@@ -79,6 +79,7 @@ class PolicyValueNetwork(nn.Module):
         # value head
         value = F.relu(self.value_bn1(self.value_conv1(x)))
         value = F.relu(self.value_fc1(torch.flatten(value, 1)))
-        value = self.value_fc2(value)  # sigmoidに通さない. 代わりにBCEWithLogitsLossを使う.
+        # 評価値を0~1にしないため、sigmoidに通さない. 代わりにBCEWithLogitsLossを使う.
+        value = self.value_fc2(value)
 
         return policy, value
