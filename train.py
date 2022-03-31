@@ -14,7 +14,7 @@ parser.add_argument("--gpu", "-g", type=int, help="GPU ID")
 parser.add_argument("--epoch", "-e", type=int, default=1, help="Number of epoch times")
 parser.add_argument("--batchsize", "-b", type=int, default=1024,
                     help="Number of positions in each mini-batch")
-parser.add_argument("--testbatch_size", type=int, default=1024,
+parser.add_argument("--test_batchsize", type=int, default=1024,
                     help="Number of positions in each test mini-batch")
 parser.add_argument("--lr", type=float, default=0.01, help="learning rate")
 parser.add_argument("--checkpoint", default="checkpoints/checkpoint-{epoch:03}.pth",
@@ -71,7 +71,7 @@ else:
 logging.info("Reading training data")
 train_dataloader = HcpeDataLoader(args.train_data, args.batchsize, device, shuffle=True)
 logging.info("Reading test data")
-test_dataloader = HcpeDataLoader(args.test_data, args.testbatchsize, device)
+test_dataloader = HcpeDataLoader(args.test_data, args.test_batchsize, device)
 
 logging.info(f"train position num = {len(train_dataloader)}")
 logging.info(f"test position num = {len(test_dataloader)}")
