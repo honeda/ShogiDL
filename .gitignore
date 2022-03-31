@@ -1,7 +1,7 @@
 .venv/
 notebooks/
 __pycache__/
-data/floodgate/
+data/floodgate
 data/processed/
 
 poetry.lock
