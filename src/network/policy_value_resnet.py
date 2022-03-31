@@ -67,7 +67,7 @@ class PolicyValueNetwork(nn.Module):
 
     def forward(self, x):
         x = self.conv1(x)
-        x = F.relu(self.norm1(x))
+        x = F.relu(self.bn1(x))
 
         # resnet blocks
         x = self.blocks(x)
