@@ -97,7 +97,7 @@ class BasePlayer():
                     bestmove, ponder_move = self.go()
                     if need_print_bestmove:
                         print(f"bestmove {bestmove}"
-                              (f" ponder {ponder_move}" if ponder_move else ""),
+                              + (f" ponder {ponder_move}" if ponder_move else ""),
                               flush=True
                               )
                     return bestmove, ponder_move
