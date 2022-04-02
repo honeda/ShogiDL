@@ -89,8 +89,8 @@ class BasePlayer():
                                 kwargs[args[i]] = int(args[i + 1])
 
                 self.set_limits(**kwargs)
-                # save conditions and elapsed time for ponderhit.
-                last_conds = kwargs
+                # save limits and elapsed time for ponderhit.
+                last_limits = kwargs
                 need_print_bestmove = ("ponder" not in kwargs) and ("infinite" not in kwargs)
 
                 def go_and_print_bestmove():
@@ -112,8 +112,8 @@ class BasePlayer():
                 print(f"bestmove {bestmove}", flush=True)
             elif cmd[0] == "ponderhit":
                 # ponderで検討していた相手の手と実際の相手の手が同じ場合
-                last_conds["ponder"] = False
-                self.ponderhit(last_conds)
+                last_limits["ponder"] = False
+                self.ponderhit(last_limits)
                 bestmove, ponder_move = self.future.result()
                 print(f"bestmove {bestmove}" + (f" ponder {ponder_move}" if ponder_move else ""),
                       flush=True
