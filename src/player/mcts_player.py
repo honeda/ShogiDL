@@ -269,7 +269,164 @@ class MCTSPlayer(BasePlayer):
             ponder (bool, optional): if True, USI_Ponder is ON.
                 Defaults to False.
         """
+        # 探索回数の閾値を設定
+        if infinite or ponder:
+            # infiniteもしくはponderの場合は、探索を打ち切らないため、32bit整数の最大値とする
+            self.halt = 2**31 - 1
+        elif nodes:
+            # 探索してよいノード数を指定された場合？
+            self.halt = nodes
+        else:
+            self.remaining_time, inc = (
+                (btime, binc) if self.root_board.turn == BLACK else (wtime, winc)
+            )
+            if self.remaining_time is None and byoyomi is None and inc is None:
+                # 時間指定がない場合
+                self.halt = DEFAULT_CONST_PLAYOUT
+            else:
+                self.minimum_time = 0
+                self.remaining_time = int(self.remaining_time) if self.remaining_time else 0
+                inc = int(inc) if inc else 0
+                self.time_limit = (
+                    # この式の詳細はp.153, 囲碁ソフトEricaを参考にしている
+                    self.remaining_time / (14 + max(0, 30 - self.root_board.move_number)) + inc
+                )
+                if byoyomi:
+                    byoyomi = int(byoyomi) - self.byoyomi_margin
+                    self.minimum_time = byoyomi
+                    # time_limit が秒読み以下の場合、秒読みに設定
+                    if self.time_limit < byoyomi:
+                        self.time_limit = byoyomi
+
+                # extend_timeがTrueなら最善手と次善手が僅差の場合に時間延長する
+                self.extend_time = self.time_limit > self.minimum_time
+                self.halt = None
+
+    def go(self):
+        """
+        Returns:
+            str: USI move or "resign" or "win"
+            str or None: opponent move for the ponder
+        """
+
+        # 探索開始時間の記録
+        self.begin_time = time.time()
+
+        if self.root_board.is_game_over():
+            # 投了
+            return "resign", None
+
+        if self.root_board.is_nyugyoku():
+            # 入玉宣言勝ち
+            return "win", None
+
+        current_node = self.tree.current_head
+
+        # 詰みの確認
+        if current_node.value == VALUE_WIN:
+            # 3手詰みの場合はルートノードのvalueがVALUE_WINに設定されている
+            matemove = self.root_board.mate_move(3)  # 3手詰め確認
+            if matemove != 0:
+                print(f"info score mate 3 pv {move_to_usi(matemove)}", flush=True)
+                return move_to_usi(matemove), None
+        if not self.root_board.is_check():
+            matemove = self.root_board.mate_move_in_1ply()
+            if matemove:
+                print(f"info score mate 1 pv {move_to_usi(matemove)}", flush=True)
+                return move_to_usi(matemove), None
+
+        # clear playout count
+        self.playout_count = 0
+
+        # ルートノードが未展開の場合は展開
+        if current_node.child_move is None:
+            current_node.expand_node(self.root_node)
+
+        # 候補手が1つの場合はその手を返す
+        if self.halt is None and len(current_node.child_move) == 1:
+            if current_node.child_move_count[0] > 0:
+                pass
+
+    def stop(self):
+        # すぐに中断する
+        self.halt = 0
+
+    def ponderhit(self, last_limits):
+        self.begin_time = time.time()
+        self.last_pv_print_time = 0
+
+        self.playout_count = 0
+        self.set_limits(**last_limits)
+
+    def quit(self):
+        self.stop()
+
+    def search(self):
         pass
+
+    def uct_search(self, board, current_node, trajectories):
+        pass
+
+    def select_max_ucb_child(self, node):
+        # q = np.divide(
+        pass
+
+    def get_bestmove_and_print_pv(self):
+        pass
+
+    def check_interruption(self):
+        """Check to interrupt search."""
+
+        # プレイアウト数が閾値を超えている
+        if self.halt is not None:
+            return self.playout_count >= self.halt
+
+        # 候補手が1つの場合は中断
+        current_node = self.tree.current_head
+        if len(current_node.child_move) == 1:
+            return True
+
+        # 消費時間
+        spend_time = int((time.time() - self.begin_time) * 1000)
+
+        # 消費時間が短すぎる場合、もしくは秒読みの場合は打ち切らない
+        if spend_time * 10 < self.time_limit or spend_time < self.minimum_time:
+            return False
+
+        # 探索打ち切り
+        #   残りの時間で可能なプレイアウト数をすべて2番目に訪問回数の多いノードに費やしても
+        #   1番訪問回数が多いノードを超えない場合は、残りのプレイアウトは無駄になるので打ち切る.
+        # 探索回数が最も多い手と次に多い手を求める
+        child_move_count = current_node.child_move_count
+        second_idx, first_idx = np.argpartition(child_move_count, -2)[-2:]
+        second, first = child_move_count[[second_idx, first_idx]]
+
+        # 探索測度から残りの時間で探索できるプレイアウト数を見積もる
+        rest = int(self.playout_count * ((self.time_limit - spend_time) / spend_time))
+
+        # 残りの探索で次善手が最善手を超える可能性がある場合は打ち切らない
+        if first - second <= rest:
+            return False
+
+        # 探索延長
+        #   21手目以降かつ、残り時間がある場合、
+        #   最善手の探索回数が次善手の探索回数の1.5倍未満もしくは、勝率が逆なら探索延長する
+        if (
+            self.extend_time
+            and self.root_board.move_number > 20
+            and self.remaining_time > self.time_limit * 2
+            and (first < second * 1.5
+                 or (current_node.child_sum_value[first_idx] / child_move_count[first_idx]
+                     < current_node.child_sum_value[second_idx] / child_move_count[second_idx]))
+        ):
+            # 探索時間を2倍に延長
+            self.time_limit *= 2
+            # 探索延長は1回のみ
+            self.extend_time = False
+            print("info string extend_time")
+            return False
+
+        return True
 
     def make_input_features(self, board):
         make_input_features(board, self.features.numpy()[self.current_batch_index])
