@@ -70,7 +70,7 @@ class NodeTree:
 
         Args:
             starting_pos_key (int): zobrist hash of start position.
-                It got by `cshogi.zobrist_hash()`.
+                It got by `cshogi.Board().zobrist_hash()`.
             moves (list): move list.
                 USIプロトコルのpositionコマンドによる開始局面から現局面までの指し手リストが渡される.
         """
