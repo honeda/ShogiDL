@@ -345,7 +345,38 @@ class MCTSPlayer(BasePlayer):
         # 候補手が1つの場合はその手を返す
         if self.halt is None and len(current_node.child_move) == 1:
             if current_node.child_move_count[0] > 0:
-                pass
+                bestmove, bestvalue, ponder_move = self.get_bestmove_and_print_pv()
+                return move_to_usi(bestmove), move_to_usi(ponder_move) if ponder_move else None
+            else:
+                return move_to_usi(current_node.child_move[0]), None
+
+        # ルートノードが未評価の場合、評価する
+        if current_node.policy is None:
+            print("ここにいつくる？")
+            self.current_batch_index = 0
+            self.queue_node(self.root_board, current_node)
+            self.eval_node()
+
+        self.search()
+
+        bestmove, bestvalue, ponder_move = self.get_bestmove_and_print_pv()
+
+        # for debug
+        if self.debug:
+            for i in range(len(current_node.child_move)):
+                print("{:3}:{:5} move_count:{:4} nn_rate:{:.5f} win_rate:{:.5f}".format(
+                    i, move_to_usi(current_node.child_move[i]),
+                    current_node.child_move_count[i],
+                    current_node.policy[i],
+                    (current_node.child_sum_value[i] / current_node.child_move_count[i]
+                     if current_node.child_move_count[i] > 0 else 0)
+                ))
+
+        # 閾値未満の場合投了
+        if bestvalue < self.resign_threshold:
+            return "resign", None
+
+        return move_to_usi(bestmove), move_to_usi(ponder_move) if ponder_move else None
 
     def stop(self):
         # すぐに中断する
@@ -362,7 +393,31 @@ class MCTSPlayer(BasePlayer):
         self.stop()
 
     def search(self):
-        pass
+        self.last_pv_print_time = 0
+
+        # 探索経路のバッチ
+        trajectories_batch = []
+        trajectories_batch_discarded = []
+
+        # 探索回数が閾値を超える、または探索が打ち切られたらループを抜ける
+        while True:
+            trajectories_batch.clear()
+            trajectories_batch_discarded.clear()
+            self.current_batch_index = 0
+
+            # バッチサイズの回数だけシミュレーションを行う
+            for i in range(self.batch_size):
+                board = self.root_board.copy()
+
+                # 探索
+                trajectories_batch.append([])
+                result = self.uct_search(board, self.tree_current_head, trajectories_batch[-1])
+
+                if result != DISCARDED:
+                    # 探索回数を1増やす
+                    self.playout_count += 1
+                else:
+                    pass
 
     def uct_search(self, board, current_node, trajectories):
         pass
