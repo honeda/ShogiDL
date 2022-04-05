@@ -545,7 +545,7 @@ class MCTSPlayer(BasePlayer):
         q = np.divide(node.child_sum_value, node.child_move_count,
                       out=np.zeros(len(node.child_move), np.float32),
                       where=node.child_move_count != 0)
-        if node.child_move_count == 0:
+        if node.move_count == 0:
             u = 1.0
         else:
             u = np.sqrt(np.float32(node.move_count)) / (1 + node.child_move_count)
