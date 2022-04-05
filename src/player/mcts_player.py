@@ -706,3 +706,7 @@ class MCTSPlayer(BasePlayer):
             # update node's values
             current_node.policy = probabilities
             current_node.value = float(value)
+
+if __name__ == "__main__":
+    player = MCTSPlayer()
+    player.run()
