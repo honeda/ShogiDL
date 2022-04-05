@@ -82,7 +82,7 @@ class MCTSPlayer(BasePlayer):
     """Monte Carlo tree search player"""
 
     name = "python-dlshogi2"
-    DEFAULT_MODELFILE = "checkpoints/checkpoint.pth"
+    DEFAULT_MODELFILE = "data/checkpoints/checkpoint-002.pth"
 
     def __init__(self) -> None:
         """
