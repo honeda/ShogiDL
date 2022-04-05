@@ -411,7 +411,7 @@ class MCTSPlayer(BasePlayer):
 
                 # 探索
                 trajectories_batch.append([])
-                result = self.uct_search(board, self.tree_current_head, trajectories_batch[-1])
+                result = self.uct_search(board, self.tree.current_head, trajectories_batch[-1])
 
                 if result != DISCARDED:
                     # 探索回数を1増やす
