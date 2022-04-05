@@ -528,7 +528,7 @@ class MCTSPlayer(BasePlayer):
                 result = 1.0
             elif next_node.value == VALUE_DRAW:
                 result = 0.5
-            elif len(next_node.chile_move) == 0:
+            elif len(next_node.child_move) == 0:
                 result = 1.0
             else:
                 # 手番を入れ替えて1手深く読む
@@ -690,7 +690,7 @@ class MCTSPlayer(BasePlayer):
             color = self.eval_queue[i].color
 
             # all legal moves
-            legal_move_probabilities = np.empty(len(current_node.chile_move), dtype=np.float32)
+            legal_move_probabilities = np.empty(len(current_node.child_move), dtype=np.float32)
             for j in range(len(current_node.child_move)):
                 move = current_node.child_move[j]
                 move_label = self.make_move_label(move, color)
