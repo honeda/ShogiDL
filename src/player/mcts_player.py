@@ -29,7 +29,7 @@ VALUE_WIN = 10000
 # 負けを表す定数（数値に意味はない）
 VALUE_LOSE = -10000
 # 引き分けを表す定数（数値に意味はない）
-VALUE_LOSE = 20000
+VALUE_DRAW = 20000
 # キューに追加されたときの戻り値（数値に意味はない）
 QUEUING = -1
 # 探索を破棄するときの戻り値（数値に意味はない）
@@ -417,17 +417,184 @@ class MCTSPlayer(BasePlayer):
                     # 探索回数を1増やす
                     self.playout_count += 1
                 else:
-                    pass
+                    # 破棄した探索経路を保存
+                    trajectories_batch_discarded.append(trajectories_batch[-1])
+                    # 破棄が多い場合はすぐに評価する
+                    if len(trajectories_batch_discarded) > self.batch_size // 2:
+                        trajectories_batch.pop()
+                        break
+
+                # 評価中の葉ノードに達した、もしくはバックアップ済みのため廃棄する
+                if result == DISCARDED or result != QUEUING:
+                    trajectories_batch.pop()
+
+            # 評価
+            if len(trajectories_batch) > 0:
+                self.eval_node()
+
+            # 破棄した探索経路のVirtual Lossを戻す
+            for trajectories in trajectories_batch_discarded:
+                for i in range(len(trajectories)):
+                    current_node, next_index = trajectories[i]
+                    current_node.move_count -= VIRTUAL_LOSS
+                    current_node.child_move_count[next_index] -= VIRTUAL_LOSS
+
+            # バックアップ
+            for trajectories in trajectories_batch:
+                result = None
+                for i in reversed(range(len(trajectories))):
+                    if result is None:
+                        # 葉ノード
+                        result = 1.0 - current_node.child_node[next_index].value
+                    update_result(current_node, next_index, result)
+                    result = 1.0 - result
+
+            # 探索を打ち切るか確認
+            if self.check_interruption():
+                return
+
+            # PV表示
+            if self.pv_interval > 0:
+                elapsed_time = int((time.time() - self.begin_time) * 1000)
+                if elapsed_time > self.last_pv_print_time + self.pv_interval:
+                    self.last_pv_print_time = elapsed_time
+                    self.get_bestmove_and_print_pv()
 
     def uct_search(self, board, current_node, trajectories):
-        pass
+        # 子ノードのリストが初期化されていない場合、初期化する
+        if not current_node.child_node:
+            current_node.child_node = [None for _ in range(len(current_node.child_move))]
+        # UCB値が最大の手を求める
+        next_index = self.select_max_ucb_child(current_node)
+        # 選んだ手を着手
+        board.push(current_node.child_move[next_index])
+
+        # Virtual Loss を加算
+        current_node.move_count += VIRTUAL_LOSS
+        current_node.child_move_count[next_index] += VIRTUAL_LOSS
+
+        # 経路を記録
+        trajectories.append((current_node, next_index))
+
+        # ノードの展開の確認
+        if current_node.child_node[next_index] is None:
+            # ノードの確認
+            child_node = current_node.create_child_node(next_index)
+
+            # 千日手チェック
+            draw = board.is_draw()
+            if draw != NOT_REPETITION:
+                if draw == REPETITION_DRAW:
+                    child_node.value = VALUE_DRAW
+                    result = 0.5
+                elif draw == REPETITION_WIN or draw == REPETITION_SUPERIOR:
+                    # 連続王手の千日手で勝ち、もしくは優越局面の場合
+                    # これらの場合、この局面ではこの手が一番良いことが確定するので最大値とする
+                    # 子ノード（相手の局面）に対しての勝敗のためresultが反転している
+                    child_node.value = VALUE_WIN
+                    result = 0.0
+                else:  # draw == REPETITION_LOSE or draw == REPETITION_INFERIOR
+                    # 連続王手の千日手で負け、もしくは劣等局面の場合
+                    child_node.value = VALUE_LOSE
+                    result = 1.0
+            else:
+                # 入玉宣言と3手詰めのチェック
+                if board.is_nyugyoku() or board.mate_move(3):
+                    child_node.value = VALUE_WIN
+                    result = 0.0
+                else:
+                    # 候補手を展開する
+                    child_node.expand_node(board)
+                    # 候補手がない場合
+                    if len(child_node.child_move) == 0:
+                        child_node.value = VALUE_LOSE
+                        result = 1.0
+                    else:
+                        # ノードを評価待ちキューに追加
+                        self.queue_node(board, child_node)
+                        return QUEUING
+        else:
+            # 評価待ちのため破棄する
+            next_node = current_node.child_node[next_index]
+            if next_node.value is None:
+                # ここに来るのはQUEUINGを以前に返しているときのみなので
+                # もう一度キューに入れないようにしている
+                return DISCARDED
+
+            # 詰みと千日手チェック
+            if next_node.value == VALUE_WIN:
+                result = 0.0
+            elif next_node.value == VALUE_LOSE:
+                result = 1.0
+            elif next_node.value == VALUE_DRAW:
+                result = 0.5
+            elif len(next_node.chile_move) == 0:
+                result = 1.0
+            else:
+                # 手番を入れ替えて1手深く読む
+                result = self.uct_search(board, next_node, trajectories)
+
+        if result == QUEUING or result == DISCARDED:
+            return result
+        else:
+            # 探索結果の反映.
+            update_result(current_node, next_index, result)
+            return 1.0 - result
 
     def select_max_ucb_child(self, node):
-        # q = np.divide(
-        pass
+        q = np.divide(node.child_sum_value, node.child_move_count,
+                      out=np.zeros(len(node.child_move), np.float32),
+                      where=node.child_move_count != 0)
+        if node.child_move_count == 0:
+            u = 1.0
+        else:
+            u = np.sqrt(np.float32(node.move_count)) / (1 + node.child_move_count)
+        ucb = q + self.c_puct * u * node.policy
+
+        return np.argmax(ucb)
 
     def get_bestmove_and_print_pv(self):
-        pass
+        # 探索にかかった時間を求める
+        finish_time = time.time() - self.begin_time
+
+        # 訪問回数最大の手を選択する
+        current_node = self.tree.current_head
+        selected_index = np.argmax(current_node.child_move_count)
+
+        # 選択した着手の勝率の算出
+        bestvalue = (current_node.child_sum_value[selected_index]
+                     / current_node.child_move_count[selected_index])
+        bestmove = current_node.child_move[selected_index]
+
+        # 勝率を評価値に変換
+        if bestvalue == 1.0:
+            cp = 30_000
+        elif bestvalue == 0.0:
+            cp = -30_000
+        else:
+            cp = int(-math.log(1.0 / bestvalue - 1.0) * 600)  # Ponanzaが使っていた式
+
+        # PV
+        pv = move_to_usi(bestmove)
+        ponder_move = None
+        pv_node = current_node
+        while pv_node.child_node:
+            pv_node = pv_node.child_node[selected_index]
+            if (pv_node is None) or (pv_node.child_move is None) or (pv_node.move_count == 0):
+                break
+            selected_index = np.argmax(pv_node.child_move_count)
+            pv += " " + move_to_usi(pv_node.child_move[selected_index])
+            if ponder_move is None:
+                ponder_move = pv_node.child_move[selected_index]
+
+        print(f"info "
+              f"nps {int(self.playout_count / finish_time) if finish_time > 0 else 0} "
+              f"time {int(finish_time * 1000)} "
+              f"nodes {current_node.move_count}"
+              f"score cp {cp} pv {pv}",
+              flush=True)
+
+        return bestmove, bestvalue, ponder_move
 
     def check_interruption(self):
         """Check to interrupt search."""
