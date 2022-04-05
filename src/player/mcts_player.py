@@ -443,6 +443,7 @@ class MCTSPlayer(BasePlayer):
             for trajectories in trajectories_batch:
                 result = None
                 for i in reversed(range(len(trajectories))):
+                    current_node, next_index = trajectories[i]
                     if result is None:
                         # 葉ノード
                         result = 1.0 - current_node.child_node[next_index].value
