@@ -18,7 +18,7 @@ DEFAULT_GPU_ID = 0
 DEFAULT_BATCH_SIZE = 32
 DEFAULT_RESIGN_THRESHOLD = 0.01  # デフォルト投了閾値
 DEFAULT_C_PUCT = 1.0             # デフォルトPUCTの定数
-DEFAULT_TEMPETATURE = 1.0        # デフォルト温度パラメータ
+DEFAULT_TEMPERATURE = 1.0        # デフォルト温度パラメータ
 DEFAULT_TIME_MARGIN = 1000       # ms
 DEFAULT_BYOYOMI_MARGIN = 100     # ms
 DEFAULT_PV_INTERVAL = 500        # ms
@@ -138,7 +138,7 @@ class MCTSPlayer(BasePlayer):
 
         self.resign_threshold = DEFAULT_RESIGN_THRESHOLD
         self.c_puct = DEFAULT_C_PUCT
-        self.temperature = DEFAULT_TEMPETATURE
+        self.temperature = DEFAULT_TEMPERATURE
         self.time_margin = DEFAULT_TIME_MARGIN
         self.byoyomi_margin = DEFAULT_BYOYOMI_MARGIN
         self.pv_interval = DEFAULT_PV_INTERVAL
@@ -155,7 +155,7 @@ class MCTSPlayer(BasePlayer):
         print(f"{o} resign_threshold type spin default {int(DEFAULT_RESIGN_THRESHOLD * 100)}"
               " min 0 max 100")
         print(f"{o} c_puct type spin default {int(DEFAULT_C_PUCT * 100)} min 10 max 1000")
-        print(f"{o} temperature type spin default {int(DEFAULT_TEMPETATURE * 100)}"
+        print(f"{o} temperature type spin default {int(DEFAULT_TEMPERATURE * 100)}"
               " min 10 max 1000")
         print(f"{o} time_margin type spin default {DEFAULT_TIME_MARGIN} min 0 max 1000")
         print(f"{o} byoyomi_margin type spin default {DEFAULT_BYOYOMI_MARGIN} min 0 max 1000")
