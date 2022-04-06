@@ -340,7 +340,7 @@ class MCTSPlayer(BasePlayer):
 
         # ルートノードが未展開の場合は展開
         if current_node.child_move is None:
-            current_node.expand_node(self.root_node)
+            current_node.expand_node(self.root_board)
 
         # 候補手が1つの場合はその手を返す
         if self.halt is None and len(current_node.child_move) == 1:
