@@ -237,7 +237,7 @@ class MCTSPlayer(BasePlayer):
         if sfen == "startpos":
             # 開始局面から開始している場合
             self.root_board.reset()
-        elif sfen[5:] == "sfen ":
+        elif sfen[:5] == "sfen ":
             # sfen形式で局面が指定されている場合
             self.root_board.set_sfen(sfen[5:])
 
