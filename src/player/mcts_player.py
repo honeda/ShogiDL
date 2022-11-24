@@ -352,7 +352,6 @@ class MCTSPlayer(BasePlayer):
 
         # ルートノードが未評価の場合、評価する
         if current_node.policy is None:
-            print("ここにいつくる？")
             self.current_batch_index = 0
             self.queue_node(self.root_board, current_node)
             self.eval_node()
